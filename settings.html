@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Змейка — Настройки</title>
+    <link rel="stylesheet" href="common.css">
+</head>
+<body>
+    <div class="container">
+        <h1>⚙ НАСТРОЙКИ</h1>
+        
+        <div class="setting-row">
+            <span>🔊 Звук</span>
+            <select id="soundSelect">
+                <option value="true">Включён</option>
+                <option value="false">Выключен</option>
+            </select>
+        </div>
+        
+        <div class="setting-row">
+            <span>🐍 Скорость игры</span>
+            <select id="speedSelect">
+                <option value="slow">Медленно</option>
+                <option value="normal">Нормально</option>
+                <option value="fast">Быстро</option>
+            </select>
+        </div>
+        
+        <div class="setting-row">
+            <span>🎨 Скин</span>
+            <select id="skinSelect">
+                <option value="default">Обычный</option>
+                <option value="gold">Золотой</option>
+                <option value="rainbow">Радужный</option>
+            </select>
+        </div>
+        
+        <div class="setting-row">
+            <span>🏆 Рекорд: <span id="highScore">0</span></span>
+            <button id="resetProgress" style="width: auto; font-size: 0.9rem;">🗑 Сброс прогресса</button>
+        </div>
+        
+        <button id="backToMenu" class="back-btn">🏠 Назад в меню</button>
+    </div>
+    
+    <script type="module">
+        import { gameState, initCommon, updateCommonUI } from './common.js';
+        import { saveGame, loadSave } from './modules/save.js';
+        
+        function refreshSettings() {
+            document.getElementById('soundSelect').value = gameState.save.soundEnabled;
+            document.getElementById('speedSelect').value = gameState.save.speed;
+            document.getElementById('skinSelect').value = gameState.save.currentSkin;
+            document.getElementById('highScore').innerText = gameState.save.highScore;
+        }
+        
+        document.getElementById('soundSelect')?.addEventListener('change', (e) => {
+            gameState.save.soundEnabled = e.target.value === 'true';
+            saveGame(gameState.save);
+        });
+        
+        document.getElementById('speedSelect')?.addEventListener('change', (e) => {
+            gameState.save.speed = e.target.value;
+            saveGame(gameState.save);
+        });
+        
+        document.getElementById('skinSelect')?.addEventListener('change', (e) => {
+            if (gameState.save.skins.includes(e.target.value) || e.target.value === 'default') {
+                gameState.save.currentSkin = e.target.value;
+                saveGame(gameState.save);
+            } else {
+                alert('Сначала купи этот скин в магазине!');
+                refreshSettings();
+            }
+        });
+        
+        document.getElementById('resetProgress')?.addEventListener('click', () => {
+            if (confirm('Точно сбросить весь прогресс? Монеты, рекорды и скины пропадут.')) {
+                localStorage.removeItem('snake_save');
+                location.reload();
+            }
+        });
+        
+        initCommon();
+        refreshSettings();
+        
+        // обновляем рекорд при загрузке
+        const saved = loadSave();
+        document.getElementById('highScore').innerText = saved.highScore;
+    </script>
+</body>
+</html>
