@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Змейка — Игра</title>
+    <link rel="stylesheet" href="common.css">
+</head>
+<body>
+    <div class="container">
+        <div class="hud">
+            <div class="score-box">🐍 ДЛИНА: <span id="length">3</span></div>
+            <div class="score-box">💰 <span id="coins">0</span></div>
+        </div>
+        <div id="board"></div>
+        <div class="hud" style="justify-content: center;">
+            <button id="backToMenu" class="back-btn">🏠 Меню</button>
+        </div>
+    </div>
+    <script type="module">
+        import { Snake } from './modules/snake.js';
+        import { FoodManager } from './modules/food.js';
+        import { Renderer } from './modules/renderer.js';
+        import { InputHandler } from './modules/input.js';
+        import { gameState, initCommon, updateCommonUI } from './common.js';
+        import { addCoins, updateHighScore } from './modules/save.js';
+        
+        const BOARD_SIZE = 25;
+        let snake, foodManager, renderer, inputHandler;
+        let gameInterval = null;
+        let isGameOver = false;
+        let currentScore = 3;
+        
+        function getSpeedMs() {
+            const speeds = { slow: 180, normal: 130, fast: 90 };
+            return speeds[gameState.save.speed] || 130;
+        }
+        
+        function gameStep() {
+            if (isGameOver) return;
+            
+            snake.applyDirection();
+            const nextHead = snake.calculateNextHead();
+            
+            // стены
+            if (nextHead.x < 0 || nextHead.x >= BOARD_SIZE || 
+                nextHead.y < 0 || nextHead.y >= BOARD_SIZE) {
+                endGame();
+                return;
+            }
+            
+            const foodPos = foodManager.getPosition();
+            const ate = (nextHead.x === foodPos.x && nextHead.y === foodPos.y);
+            
+            snake.move(nextHead, ate);
+            
+            // столкновение с собой
+            if (snake.collidesWithItself()) {
+                endGame();
+                return;
+            }
+            
+            if (ate) {
+                currentScore = snake.getLength();
+                document.getElementById('length').innerText = currentScore;
+                document.getElementById('coins').innerText = currentScore - 3;
+                
+                const success = foodManager.generate(snake.segments);
+                if (!success) {
+                    endGame(true);
+                    return;
+                }
+            }
+            
+            renderer.renderSnake(snake.segments, gameState.save.currentSkin);
+            renderer.renderFood(foodManager.getPosition());
+        }
+        
+        function endGame(win = false) {
+            if (isGameOver) return;
+            isGameOver = true;
+            
+            if (gameInterval) clearInterval(gameInterval);
+            
+            const earnedCoins = Math.max(0, currentScore - 3);
+            if (earnedCoins > 0) {
+                addCoins(earnedCoins);
+                updateCommonUI();
+            }
+            
+            const isRecord = updateHighScore(currentScore);
+            const message = win ? '🏆 ПОБЕДА! 🏆' : `💀 ИГРА ОКОНЧЕНА 💀\nДлина: ${currentScore}`;
+            const recordMsg = isRecord ? '\n🏅 НОВЫЙ РЕКОРД! 🏅' : '';
+            
+            renderer.renderGameOver(message + recordMsg);
+        }
+        
+        function startGameLoop() {
+            if (gameInterval) clearInterval(gameInterval);
+            gameInterval = setInterval(() => gameStep(), getSpeedMs());
+        }
+        
+        function initGame() {
+            const boardElement = document.getElementById('board');
+            const cellSize = boardElement.clientWidth / BOARD_SIZE;
+            
+            snake = new Snake(12, 12);
+            foodManager = new FoodManager(BOARD_SIZE);
+            foodManager.generate(snake.segments);
+            renderer = new Renderer(boardElement, BOARD_SIZE, cellSize);
+            
+            renderer.clear();
+            renderer.renderSnake(snake.segments, gameState.save.currentSkin);
+            renderer.renderFood(foodManager.getPosition());
+            
+            inputHandler = new InputHandler((dir) => snake.setDirection(dir));
+            
+            currentScore = snake.getLength();
+            document.getElementById('length').innerText = currentScore;
+            document.getElementById('coins').innerText = '0';
+            isGameOver = false;
+            
+            startGameLoop();
+        }
+        
+        initCommon();
+        initGame();
+        
+        // перезапуск при ресайзе
+        window.addEventListener('resize', () => {
+            if (renderer) {
+                const newCellSize = document.getElementById('board').clientWidth / BOARD_SIZE;
+                renderer.cellSize = newCellSize;
+                renderer.renderSnake(snake.segments, gameState.save.currentSkin);
+                renderer.renderFood(foodManager.getPosition());
+            }
+        });
+    </script>
+</body>
+</html>
