@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Змейка — Магазин</title>
+    <link rel="stylesheet" href="common.css">
+</head>
+<body>
+    <div class="container">
+        <h1 style="font-size: 1.8rem;">🛒 МАГАЗИН</h1>
+        <div class="hud" style="justify-content: center;">
+            <div class="score-box">💰 <span id="globalCoins">0</span></div>
+        </div>
+        
+        <div class="shop-item">
+            <span>✨ Золотая голова (скин)</span>
+            <button id="buyGoldSkin">Купить 50💰</button>
+        </div>
+        
+        <div class="shop-item">
+            <span>🐉 Радужная змея (скин)</span>
+            <button id="buyRainbowSkin">Купить 100💰</button>
+        </div>
+        
+        <div class="shop-item">
+            <span>❤️ +3 к стартовой длине</span>
+            <button id="buyLength">Купить 80💰</button>
+        </div>
+        
+        <button id="backToMenu" class="back-btn">🏠 Назад в меню</button>
+    </div>
+    
+    <script type="module">
+        import { gameState, initCommon, updateCommonUI } from './common.js';
+        import { addCoins, saveGame } from './modules/save.js';
+        
+        function buyItem(cost, onSuccess) {
+            if (gameState.save.coins >= cost) {
+                gameState.save.coins -= cost;
+                saveGame(gameState.save);
+                updateCommonUI();
+                onSuccess();
+                alert('Покупка успешна! 🎉');
+                return true;
+            } else {
+                alert('Не хватает монет! 💔');
+                return false;
+            }
+        }
+        
+        document.getElementById('buyGoldSkin')?.addEventListener('click', () => {
+            buyItem(50, () => {
+                if (!gameState.save.skins.includes('gold')) {
+                    gameState.save.skins.push('gold');
+                }
+                gameState.save.currentSkin = 'gold';
+                saveGame(gameState.save);
+            });
+        });
+        
+        document.getElementById('buyRainbowSkin')?.addEventListener('click', () => {
+            buyItem(100, () => {
+                if (!gameState.save.skins.includes('rainbow')) {
+                    gameState.save.skins.push('rainbow');
+                }
+                gameState.save.currentSkin = 'rainbow';
+                saveGame(gameState.save);
+            });
+        });
+        
+        document.getElementById('buyLength')?.addEventListener('click', () => {
+            buyItem(80, () => {
+                // логика стартовой длины (можно расширить)
+                localStorage.setItem('startLength', '6');
+                alert('В следующей игре ты начнёшь с длиной 6!');
+            });
+        });
+        
+        initCommon();
+    </script>
+</body>
+</html>
